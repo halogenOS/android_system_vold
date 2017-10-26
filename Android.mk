@@ -30,18 +30,18 @@ mini_src_files := \
 	MoveTask.cpp \
 	Benchmark.cpp \
 	TrimTask.cpp \
+	Keymaster.cpp \
+	KeyStorage.cpp \
+	KeyUtil.cpp \
 	ScryptParameters.cpp \
 	secontext.cpp \
-	main.cpp
-
-full_src_files := \
-	$(mini_src_files) \
-	Keymaster.cpp \
-	KeyStorage.cpp
+	EncryptInplace.cpp \
+	MetadataCrypt.cpp \
 
 common_c_includes := \
 	system/extras/f2fs_utils \
 	external/scrypt/lib/crypto \
+	external/f2fs-tools/include \
 	frameworks/native/include \
 	system/security/keystore \
 
@@ -51,6 +51,7 @@ common_libraries := \
 	libhidlbase \
 	libbinder \
 	libcutils \
+	libkeyutils \
 	liblog \
 	libdiskconfig \
 	liblogwrap \
@@ -81,6 +82,11 @@ common_static_libraries := \
 	libbatteryservice \
 	libavb \
 	libz
+
+# TODO: include "cert-err34-c" once we move to Binder
+# TODO: include "cert-err58-cpp" once 36656327 is fixed
+common_local_tidy_flags := -warnings-as-errors=clang-analyzer-security*,cert-*
+common_local_tidy_checks := -*,clang-analyzer-security*,cert-*,-cert-err34-c,-cert-err58-cpp
 
 vold_conlyflags := -std=c11
 vold_cflags := -Werror -Wall -Wno-missing-field-initializers -Wno-unused-variable -Wno-unused-parameter
@@ -115,7 +121,10 @@ include $(CLEAR_VARS)
 LOCAL_ADDITIONAL_DEPENDENCIES := $(LOCAL_PATH)/Android.mk
 LOCAL_MODULE := libvold
 LOCAL_CLANG := true
-LOCAL_SRC_FILES := $(full_src_files)
+LOCAL_TIDY := true
+LOCAL_TIDY_FLAGS := $(common_local_tidy_flags)
+LOCAL_TIDY_CHECKS := $(common_local_tidy_checks)
+LOCAL_SRC_FILES := $(common_src_files)
 LOCAL_C_INCLUDES := $(common_c_includes)
 LOCAL_SHARED_LIBRARIES := $(common_shared_libraries)
 LOCAL_STATIC_LIBRARIES := $(common_static_libraries)
@@ -131,6 +140,9 @@ include $(CLEAR_VARS)
 LOCAL_ADDITIONAL_DEPENDENCIES := $(LOCAL_PATH)/Android.mk
 LOCAL_MODULE := vold
 LOCAL_CLANG := true
+LOCAL_TIDY := true
+LOCAL_TIDY_FLAGS := $(common_local_tidy_flags)
+LOCAL_TIDY_CHECKS := $(common_local_tidy_checks)
 LOCAL_SRC_FILES := \
 	vold.c
 
@@ -150,6 +162,9 @@ include $(CLEAR_VARS)
 
 LOCAL_ADDITIONAL_DEPENDENCIES := $(LOCAL_PATH)/Android.mk
 LOCAL_CLANG := true
+LOCAL_TIDY := true
+LOCAL_TIDY_FLAGS := $(common_local_tidy_flags)
+LOCAL_TIDY_CHECKS := $(common_local_tidy_checks)
 LOCAL_SRC_FILES := vdc.cpp
 LOCAL_MODULE := vdc
 LOCAL_SHARED_LIBRARIES := libcutils libbase
@@ -163,6 +178,9 @@ include $(CLEAR_VARS)
 
 LOCAL_ADDITIONAL_DEPENDENCIES := $(LOCAL_PATH)/Android.mk
 LOCAL_CLANG := true
+LOCAL_TIDY := true
+LOCAL_TIDY_FLAGS := $(common_local_tidy_flags)
+LOCAL_TIDY_CHECKS := $(common_local_tidy_checks)
 LOCAL_SRC_FILES:= secdiscard.cpp
 LOCAL_MODULE:= secdiscard
 LOCAL_SHARED_LIBRARIES := libbase
