@@ -49,7 +49,7 @@ static const char* kAsecPath = "/mnt/secure/asec";
 PublicVolume::PublicVolume(dev_t device, const std::string& fstype /* = "" */,
                 const std::string& mntopts /* = "" */) :
         VolumeBase(Type::kPublic), mDevice(device), mFusePid(0),
-        mFsType(fstype), mFsLabel(nickname), mMntOpts(mntopts) {
+        mFsType(fstype), mMntOpts(mntopts) {
     setId(StringPrintf("public:%u,%u", major(device), minor(device)));
     mDevPath = StringPrintf("/dev/block/vold/%s", getId().c_str());
 }
