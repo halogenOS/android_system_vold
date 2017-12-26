@@ -53,6 +53,7 @@
 #include "cutils/android_reboot.h"
 #include "hardware_legacy/power.h"
 #include <logwrap/logwrap.h>
+#include "MetadataCrypt.h"
 #include "ScryptParameters.h"
 #include "VolumeManager.h"
 #include "VoldUtil.h"
@@ -1503,7 +1504,7 @@ int wait_and_unmount(const char *mountpoint, bool kill)
     return rc;
 }
 
-static void prep_data_fs(void)
+static void prep_data_fs_wait(void)
 {
     // NOTE: post_fs_data results in init calling back around to vold, so all
     // callers to this method must be async
@@ -1683,7 +1684,7 @@ static int cryptfs_restart_internal(int restart_main)
         }
 
         /* Create necessary paths on /data */
-        prep_data_fs();
+        prep_data_fs_wait();
         property_set("vold.decrypt", "trigger_load_persist_props");
 
         /* startup service classes main and late_start */

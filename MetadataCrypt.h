@@ -19,5 +19,6 @@
 
 bool e4crypt_mount_metadata_encrypted();
 bool e4crypt_enable_crypto();
+bool prep_data_fs();
 
 #endif

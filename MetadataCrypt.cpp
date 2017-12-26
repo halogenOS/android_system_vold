@@ -213,7 +213,7 @@ static bool create_crypto_blk_dev(const std::string& dm_name, uint64_t nr_sec,
 }
 
 #define DATA_PREP_TIMEOUT 1000
-static bool prep_data_fs(void)
+bool prep_data_fs(void)
 {
     // NOTE: post_fs_data results in init calling back around to vold, so all
     // callers to this method must be async
