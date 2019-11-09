@@ -149,7 +149,7 @@ cc_library_static {
         debuggable: {
             cppflags: ["-D__ANDROID_DEBUGGABLE__"],
         },
-        lineage: {
+        custom: {
             supports_hw_fde: {
                 cflags: ["-DCONFIG_HW_DISK_ENCRYPTION"],
                 header_libs: ["libcryptfs_hw_headers"],
@@ -185,7 +185,7 @@ cc_binary {
                 "libarcobbvolume",
             ],
         },
-        lineage: {
+        custom: {
             supports_hw_fde: {
                 shared_libs: ["libcryptfs_hw"],
             },
