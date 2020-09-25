@@ -336,6 +336,13 @@ static bool init_data_file_encryption_options(const FstabEntry& entry) {
                       "32-bit DUNs.  Remove this flag from the device's fstab";
         return false;
     }
+    if (s_data_options.version == 1) {
+        if (is_metadata_wrapped_key_supported()) {
+            s_data_options.key_type = KeyType::kHwWrappedV0;
+        } else {
+            s_data_options.key_type = KeyType::kRaw;
+        }
+    }
     return true;
 }
 
