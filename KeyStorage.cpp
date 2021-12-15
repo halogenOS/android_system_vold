@@ -378,15 +378,12 @@ static KeymasterOperation BeginKeymasterOp(Keymaster& keymaster, const std::stri
 static bool encryptWithKeymasterKey(Keymaster& keymaster, const std::string& dir,
                                     const km::AuthorizationSet& keyParams,
                                     const KeyBuffer& message, std::string* ciphertext) {
-    auto opParams =
+    km::AuthorizationSet opParams =
             km::AuthorizationSetBuilder()
+                    .Authorization(km::TAG_ROLLBACK_RESISTANCE)
                     .Authorization(km::TAG_PURPOSE, km::KeyPurpose::ENCRYPT);
-    auto opParamsWithRollback = opParams;
-    opParamsWithRollback.Authorization(km::TAG_ROLLBACK_RESISTANCE);
-
     km::AuthorizationSet outParams;
-    auto opHandle = BeginKeymasterOp(keymaster, dir, keyParams, opParamsWithRollback, &outParams);
-    if (!opHandle) opHandle = BeginKeymasterOp(keymaster, dir, keyParams, opParams, &outParams);
+    auto opHandle = BeginKeymasterOp(keymaster, dir, keyParams, opParams, &outParams);
     if (!opHandle) return false;
     auto nonceBlob = outParams.GetTagValue(km::TAG_NONCE);
     if (!nonceBlob) {
@@ -413,12 +410,9 @@ static bool decryptWithKeymasterKey(Keymaster& keymaster, const std::string& dir
     auto bodyAndMac = ciphertext.substr(GCM_NONCE_BYTES);
     auto opParams = km::AuthorizationSetBuilder()
                             .Authorization(km::TAG_NONCE, nonce)
+                            .Authorization(km::TAG_ROLLBACK_RESISTANCE)
                             .Authorization(km::TAG_PURPOSE, km::KeyPurpose::DECRYPT);
-    auto opParamsWithRollback = opParams;
-    opParamsWithRollback.Authorization(km::TAG_ROLLBACK_RESISTANCE);
-
-    auto opHandle = BeginKeymasterOp(keymaster, dir, keyParams, opParamsWithRollback, nullptr);
-    if (!opHandle) opHandle = BeginKeymasterOp(keymaster, dir, keyParams, opParams, nullptr);
+    auto opHandle = BeginKeymasterOp(keymaster, dir, keyParams, opParams, nullptr);
     if (!opHandle) return false;
     if (!opHandle.updateCompletely(bodyAndMac, message)) return false;
     if (!opHandle.finish(nullptr)) return false;
