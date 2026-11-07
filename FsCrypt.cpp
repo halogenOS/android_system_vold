@@ -65,6 +65,7 @@ using android::base::Basename;
 using android::base::Realpath;
 using android::base::StartsWith;
 using android::base::StringPrintf;
+using android::fs_mgr::FstabEntry;
 using android::fs_mgr::GetEntryForMountPoint;
 using android::os::casefoldingremover::ICasefoldingRemover;
 using android::vold::BuildDataPath;
@@ -75,6 +76,7 @@ using android::vold::KeyBuffer;
 using android::vold::KeyGeneration;
 using android::vold::retrieveKey;
 using android::vold::retrieveOrGenerateKey;
+using android::vold::retrieveOrGenerateKeyAndDetectType;
 using android::vold::SetDefaultAcl;
 using android::vold::SetQuotaInherit;
 using android::vold::SetQuotaProjectId;
@@ -321,19 +323,14 @@ static bool DoesHardwareSupportOnly32DunBits(const std::string& blk_device) {
 }
 
 // Sets s_data_options to the file encryption options for the /data filesystem.
-static bool init_data_file_encryption_options() {
-    auto entry = GetEntryForMountPoint(&fstab_default, DATA_MNT_POINT);
-    if (entry == nullptr) {
-        LOG(ERROR) << "No mount point entry for " << DATA_MNT_POINT;
-        return false;
-    }
-    if (!ParseOptions(entry->encryption_options, &s_data_options)) {
+static bool init_data_file_encryption_options(const FstabEntry& entry) {
+    if (!ParseOptions(entry.encryption_options, &s_data_options)) {
         LOG(ERROR) << "Unable to parse encryption options for " << DATA_MNT_POINT ": "
-                   << entry->encryption_options;
+                   << entry.encryption_options;
         return false;
     }
     if ((s_data_options.flags & FSCRYPT_POLICY_FLAG_IV_INO_LBLK_32) &&
-        !DoesHardwareSupportOnly32DunBits(entry->blk_device)) {
+        !DoesHardwareSupportOnly32DunBits(entry.blk_device)) {
         // This would unnecessarily reduce security and not be compliant with the CDD.
         LOG(ERROR) << "The emmc_optimized encryption flag is only allowed on hardware limited to "
                       "32-bit DUNs.  Remove this flag from the device's fstab";
@@ -540,11 +537,17 @@ static bool load_all_de_keys() {
 bool fscrypt_initialize_systemwide_keys() {
     LOG(INFO) << "fscrypt_initialize_systemwide_keys";
 
-    if (!init_data_file_encryption_options()) return false;
+    auto entry = GetEntryForMountPoint(&fstab_default, DATA_MNT_POINT);
+    if (entry == nullptr) {
+        LOG(ERROR) << "No mount point entry for " << DATA_MNT_POINT;
+        return false;
+    }
+    if (!init_data_file_encryption_options(*entry)) return false;
 
     KeyBuffer device_key;
-    if (!retrieveOrGenerateKey(device_key_path, device_key_temp, kEmptyAuthentication,
-                               userdataKeyGen(), &device_key))
+    if (!retrieveOrGenerateKeyAndDetectType(device_key_path, device_key_temp, kEmptyAuthentication,
+                                            userdataKeyGen(), entry->raw_key_length, &device_key,
+                                            &s_data_options.key_type))
         return false;
 
     // This initializes s_device_policy, which is a global variable so that

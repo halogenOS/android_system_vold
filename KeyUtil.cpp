@@ -443,5 +443,19 @@ bool retrieveOrGenerateKey(const std::string& key_path, const std::string& tmp_p
     return true;
 }
 
+bool retrieveOrGenerateKeyAndDetectType(const std::string& key_path, const std::string& tmp_path,
+                                        const KeyAuthentication& key_authentication,
+                                        const KeyGeneration& gen,
+                                        std::optional<size_t> raw_key_length, KeyBuffer* key,
+                                        KeyType* key_type) {
+    const bool stored = pathExists(key_path);
+    if (!retrieveOrGenerateKey(key_path, tmp_path, key_authentication, gen, key)) return false;
+    if (stored && key->size() == raw_key_length) {
+        LOG(INFO) << "Key in " << key_path << " has the raw key length; using raw keys";
+        *key_type = KeyType::kRaw;
+    }
+    return true;
+}
+
 }  // namespace vold
 }  // namespace android

@@ -119,7 +119,7 @@ static bool mount_via_fs_mgr(const char* mount_point, const char* blk_device, bo
 }
 
 static bool read_key(const std::string& metadata_key_dir, const KeyGeneration& gen, bool first_key,
-                     KeyBuffer* key) {
+                     std::optional<size_t> raw_key_length, KeyBuffer* key, KeyType* key_type) {
     if (metadata_key_dir.empty()) {
         LOG(ERROR) << "Failed to get metadata_key_dir";
         return false;
@@ -142,7 +142,8 @@ static bool read_key(const std::string& metadata_key_dir, const KeyGeneration& g
         }
     }
     auto temp = metadata_key_dir + "/tmp";
-    return retrieveOrGenerateKey(dir, temp, kEmptyAuthentication, gen, key);
+    return retrieveOrGenerateKeyAndDetectType(dir, temp, kEmptyAuthentication, gen, raw_key_length,
+                                              key, key_type);
 }
 
 static bool get_number_of_sectors(const std::string& real_blkdev, uint64_t* nr_sec) {
@@ -353,9 +354,10 @@ bool fscrypt_mount_metadata_encrypted(const std::string& blk_device, const std::
         default_metadata_key_dir = default_metadata_key_dir + "/default";
         use_subdirs = true;
     }
-    auto gen = needs_encrypt ? makeGen(options) : neverGen();
+    auto gen = [&] { return needs_encrypt ? makeGen(options) : neverGen(); };
     KeyBuffer key;
-    if (!read_key(default_metadata_key_dir, gen, true, &key)) {
+    if (!read_key(default_metadata_key_dir, gen(), true, data_rec->raw_key_length, &key,
+                  &options.key_type)) {
         LOG(ERROR) << "read_key failed in mountFstab";
         return false;
     }
@@ -378,7 +380,7 @@ bool fscrypt_mount_metadata_encrypted(const std::string& blk_device, const std::
             break;
         }
 
-        if (!read_key(metadata_key_dir, gen, false, &key)) {
+        if (!read_key(metadata_key_dir, gen(), false, std::nullopt, &key, &options.key_type)) {
             LOG(ERROR) << "read_key failed with zoned device: " << device;
             return false;
         }

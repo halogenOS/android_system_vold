@@ -24,6 +24,7 @@
 
 #include <memory>
 #include <mutex>
+#include <optional>
 #include <string>
 
 namespace android {
@@ -68,6 +69,17 @@ bool evictKey(const std::string& mountpoint, const android::fscrypt::EncryptionP
 bool retrieveOrGenerateKey(const std::string& key_path, const std::string& tmp_path,
                            const KeyAuthentication& key_authentication, const KeyGeneration& gen,
                            KeyBuffer* key);
+
+// Like retrieveOrGenerateKey, for the first key of the metadata or file
+// encryption of a filesystem. A retrieved key of exactly "raw_key_length" bytes
+// was stored by a release that used raw keys, so it sets "key_type" to a raw key,
+// which the caller then uses for every key of that encryption. A generated key
+// leaves "key_type" unchanged.
+bool retrieveOrGenerateKeyAndDetectType(const std::string& key_path, const std::string& tmp_path,
+                                        const KeyAuthentication& key_authentication,
+                                        const KeyGeneration& gen,
+                                        std::optional<size_t> raw_key_length, KeyBuffer* key,
+                                        android::fscrypt::KeyType* key_type);
 
 }  // namespace vold
 }  // namespace android
